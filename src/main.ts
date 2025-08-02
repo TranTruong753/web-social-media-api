@@ -2,17 +2,44 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const configService = app.get(ConfigService);
-
 
   const port = configService.get('PORT');
 
 
   app.setGlobalPrefix('api/v1');
+
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
+
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+
+    exceptionFactory: (errors) => {
+      const formattedErrors = {};
+      errors.forEach((err) => {
+        if (!err.constraints) return;
+        formattedErrors[err.property] = Object.values(err.constraints);
+      });
+
+      return new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: formattedErrors,
+      });
+    }
+  }));
+
 
   const config = new DocumentBuilder()
     .setTitle('Social Media API')

@@ -6,7 +6,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
   
   getHello() {
-    return 'hello'
+    return 'hello dev'
   }
  
 }

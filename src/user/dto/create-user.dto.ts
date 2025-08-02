@@ -1,35 +1,40 @@
 // dto/create-user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, MaxLength, IsString, MinLength, IsOptional, IsDateString, Matches } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsDateString, Matches } from 'class-validator';
 
 export class CreateUserDto {
 
-  @ApiProperty({description: 'Họ và tên', example: 'Nguyễn Văn A'})
-  @IsString()
+  @ApiProperty({ required: true, description: 'Họ và tên', example: 'Nguyễn Văn A' })
+  @IsString({ message: 'Họ và tên người dùng phải là chuỗi!' })
+  @IsNotEmpty({ message: 'Họ và tên người dùng không được để trống!' })
   readonly username: string
 
-  @ApiProperty({description: 'Email người dùng', example: 'abc@gmail.com'})
-  @IsEmail()
+  @ApiProperty({ description: 'Email người dùng', example: 'abc@gmail.com' })
+  @IsEmail({}, { message: 'Email không hợp lệ!' })
+  @IsNotEmpty({ message: 'Email không được để trống!' })
   readonly email: string
 
-  @ApiProperty({description: 'Mật khẩu người dùng', example:'VanA@123'})
-  @IsString()
-  @IsNotEmpty({message: 'Mật khẩu không được để trống!'})
+  @ApiProperty({ required: true, description: 'Mật khẩu người dùng', example: 'VanA@123' })
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống!' })
   readonly password: string
 
-  @ApiProperty({description: 'Tiểu sử người dùng', example: '18 tuổi nhiệt quyết'})
+  @ApiProperty({ required: false, description: 'Tiểu sử người dùng', example: '18 tuổi nhiệt quyết' })
   @IsOptional()
-  readonly bio: string
+  readonly bio?: string
 
-  @ApiProperty({description: 'Ngày sinh người dùng', example: '2003-05-19'})
+  @ApiProperty({ required: false, description: 'Đường dẫn avatar' })
   @IsOptional()
-  @IsDateString({},{ message: 'Ngày sinh phải đúng định dạng ISO (yyyy-mm-dd).' })
-  readonly birthDate: string
+  readonly avatar?: string | null
 
-  @ApiProperty({description: 'Số điện thoại người dùng', example: '0123456789'})
+  @ApiProperty({ required: false, description: 'Ngày sinh người dùng', example: '2003-05-19' })
+  @IsOptional()
+  @IsDateString({}, { message: 'Ngày sinh phải đúng định dạng ISO (yyyy-mm-dd).' })
+  readonly birthDate?: string
+
+  @ApiProperty({ required: false, description: 'Số điện thoại người dùng', example: '0123456789' })
   @IsOptional()
   @Matches(/^0\d{9}$/, { message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 0.' })
-  readonly phone: string
+  readonly phone?: string
 
 
 }

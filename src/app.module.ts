@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
+import { PostModule } from './post/post.module';
 
 
 @Module({
@@ -12,6 +13,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true, // cho phép sử dụng toàn cục
     }),
     UserModule, 
+    PostModule,
     MongooseModule.forRoot('mongodb://localhost:27017/social-media')
   ],
   controllers: [AppController],

@@ -10,4 +10,4 @@ services:
 volumes:
   mongodb_data_container:
 
-# docker compose -p hoidanit-mongodb-4rn up -d
+# docker compose -p mongodb up -d
