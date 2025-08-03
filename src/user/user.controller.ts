@@ -1,15 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs'; // 👈 dùng promises để xóa ảnh
 import { UpdateUserDto } from './dto/update-user.dto';
 import { cleanObject } from 'src/common/utils/utils';
 import { SearchUserDto } from './dto/search-user.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
 
+@ApiTags('User')
+@ApiBearerAuth() // 👈 thông báo Swagger rằng route này cần Bearer Token
+@UseGuards(AuthGuard) // 👈 dùng AuthGuard để kiểm tra JWT
 @Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) { }

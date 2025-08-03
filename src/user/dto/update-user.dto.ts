@@ -6,6 +6,9 @@ import { IsOptional } from 'class-validator';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
 
+    @ApiProperty({ required: false, description: 'Mật khẩu người dùng', example: 'VanA@123' }) 
+    readonly password: string
+
     @ApiProperty({ required: false, description: 'Người dùng đang hoạt động' })
     @IsOptional()
     readonly isActive?: boolean;
