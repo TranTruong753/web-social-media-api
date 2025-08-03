@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -7,7 +7,7 @@ import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs'; // 👈 dùng promises để xóa ảnh
 import { UpdateUserDto } from './dto/update-user.dto';
-import { cleanObject } from 'src/common/utils/clean-object';
+import { cleanObject } from 'src/common/utils/utils';
 import { SearchUserDto } from './dto/search-user.dto';
 
 @Controller('user')
@@ -164,6 +164,11 @@ export class UserController {
         @Query() query: SearchUserDto
     ) {
         return this.userService.findAllByQuery(query)
+    }
+
+    @Delete(':id')
+    async delete(@Param('id') id: string) {
+        return this.userService.delete(id)
     }
 
 }
