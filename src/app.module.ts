@@ -7,8 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PostModule } from './post/post.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './auth/auth.guard';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 
 @Module({
@@ -18,20 +17,16 @@ import { JwtModule } from '@nestjs/jwt';
     }),
     UserModule,
     PostModule,
+    AuthModule,
     MongooseModule.forRoot('mongodb://localhost:27017/social-media'),
-    JwtModule.register({
-      global: true, // nếu muốn dùng toàn cục
-      secret: process.env.JWT_SECRET || 'default-secret', // hoặc lấy từ ConfigService
-      signOptions: { expiresIn: '1d' },
-    }),
 
-    AuthModule
+    
   ],
   controllers: [AppController],
   providers: [AppService,
     {
       provide: APP_GUARD,
-      useClass: AuthGuard,
+      useClass: JwtAuthGuard,
     },
   ],
 

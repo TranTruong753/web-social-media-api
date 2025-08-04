@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import { AuthGuard } from './auth/auth.guard';
+
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -13,9 +13,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const port = configService.get('PORT');
-
-  // const reflector = app.get(Reflector);
-  // app.useGlobalGuards(new AuthGuard(reflector, app.get('JwtService'))); // ✅ dùng global guard
 
   app.setGlobalPrefix('api/v1');
 

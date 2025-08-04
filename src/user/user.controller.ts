@@ -9,11 +9,12 @@ import { promises as fs } from 'fs'; // 👈 dùng promises để xóa ảnh
 import { UpdateUserDto } from './dto/update-user.dto';
 import { cleanObject } from 'src/common/utils/utils';
 import { SearchUserDto } from './dto/search-user.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { Public } from 'src/auth/decorators/public.decorator';
+// import { AuthGuard } from 'src/auth/auth.guard';
 
 @ApiTags('User')
 @ApiBearerAuth() // 👈 thông báo Swagger rằng route này cần Bearer Token
-@UseGuards(AuthGuard) // 👈 dùng AuthGuard để kiểm tra JWT
+// @UseGuards(AuthGuard) // 👈 dùng AuthGuard để kiểm tra JWT
 @Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) { }
@@ -143,7 +144,7 @@ export class UserController {
 
     }
 
-
+    @Public()
     @Get('get-all-user')
     async findAll() {
         return this.userService.findAll();
