@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PostModule } from './post/post.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 
 @Module({
@@ -20,7 +20,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     AuthModule,
     MongooseModule.forRoot('mongodb://localhost:27017/social-media'),
 
-    
+
   ],
   controllers: [AppController],
   providers: [AppService,

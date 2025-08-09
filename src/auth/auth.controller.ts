@@ -3,8 +3,9 @@ import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { Public, ResponseMessage } from './decorators/public.decorator';
-import { LocalAuthGuard } from './local-auth.guard';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { GoogleOauthGuard } from './guards/google-oauth.guard';
 
 
 @ApiTags('Auth')
@@ -19,7 +20,6 @@ export class AuthController {
     @ApiBody({ type: SignInDto })
     @ResponseMessage("Fetch login")
     async signIn(@Request() req) {
-        console.log("req", req.user)
         return this.authService.signIn(req.user);
     }
 
@@ -28,6 +28,19 @@ export class AuthController {
     @Get('profile')
     getProfile(@Request() req) {
         return req.user;
+    }
+
+    @Get('google')
+    @Public()
+    @UseGuards(GoogleOauthGuard)
+    async auth() { }
+
+    @Get('google/redirect')
+    @Public()
+    @UseGuards(GoogleOauthGuard)
+    async googleAuthRedirect(@Request() req) {
+
+       return this.authService.signInGoogle(req.user);
     }
 
 

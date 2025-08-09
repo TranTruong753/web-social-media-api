@@ -10,9 +10,16 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+
   const configService = app.get(ConfigService);
 
   const port = configService.get('PORT');
+
+  app.enableCors({
+    origin: '*', // hoặc '*' nếu bạn đang test
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true, // Nếu frontend dùng cookie/session
+  });
 
   app.setGlobalPrefix('api/v1');
 
@@ -45,6 +52,7 @@ async function bootstrap() {
     .setTitle('Social Media API')
     .setVersion('1.0')
     .addBearerAuth()
+    .addServer('http://localhost:8080')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/v1/docs', app, document);

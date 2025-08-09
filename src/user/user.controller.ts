@@ -10,16 +10,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { cleanObject } from 'src/common/utils/utils';
 import { SearchUserDto } from './dto/search-user.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
-// import { AuthGuard } from 'src/auth/auth.guard';
+
 
 @ApiTags('User')
-@ApiBearerAuth() // 👈 thông báo Swagger rằng route này cần Bearer Token
-// @UseGuards(AuthGuard) // 👈 dùng AuthGuard để kiểm tra JWT
+@ApiBearerAuth() 
 @Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) { }
 
     @Post('create-user')
+    @Public()
     @UseInterceptors(FileInterceptor('avatar', {
         storage: diskStorage({
             destination: './uploads/avatars',
