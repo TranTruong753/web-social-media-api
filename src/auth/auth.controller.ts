@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -6,6 +6,7 @@ import { Public, ResponseMessage } from './decorators/public.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOauthGuard } from './guards/google-oauth.guard';
+import { RegisterDto } from './dto/register.dto';
 
 
 @ApiTags('Auth')
@@ -21,6 +22,15 @@ export class AuthController {
     @ResponseMessage("Fetch login")
     async signIn(@Request() req) {
         return this.authService.signIn(req.user);
+    }
+
+    @HttpCode(HttpStatus.OK)
+    @Post('register')
+    @Public()
+    @ApiBody({ type: RegisterDto })
+    @ResponseMessage("Fetch register")
+    async register(@Body() user: RegisterDto) {
+        return this.authService.registerUser(user);
     }
 
     @UseGuards(JwtAuthGuard)
