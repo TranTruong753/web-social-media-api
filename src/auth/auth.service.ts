@@ -6,9 +6,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/user/schemas/user.schema';
 import { Model } from 'mongoose';
 import { RegisterDto } from './dto/register.dto';
-import { v4 as uuidv4 } from 'uuid';
-import dayjs from 'dayjs';
-
 
 
 @Injectable()
@@ -16,8 +13,7 @@ export class AuthService {
 
     constructor(
         private userService: UserService,
-        private jwtService: JwtService,
-        @InjectModel(User.name) private userModel: Model<User>
+        private jwtService: JwtService
     ) { }
 
     generateJwt(payload) {
@@ -44,6 +40,10 @@ export class AuthService {
 
         if (!userExists) {
             return this.registerGoogleUser(user);
+        }
+
+        if(userExists.isActive === false){
+            return this.userService.sendCodeId(userExists)
         }
 
         const payload = {
@@ -83,64 +83,12 @@ export class AuthService {
 
 
     async registerGoogleUser(user) {
-        try {
-            const { username, email } = user
-            const codeId = uuidv4();
-
-            const codeExpired = dayjs().add(30, 's').toDate();
-
-
-            const createdUser = await this.userModel.create({
-                username,
-                email,
-                isActive: false,
-                codeId: codeId,
-                codeExpired
-            })
-
-            // const payload = {
-            //     id: createdUser._id,
-            //     email: createdUser.email,
-            //     username: createdUser.username
-            // };
-
-            // send email
-
-
-            return {
-                message: 'Email đã được gửi code hãy chuyển qua trang active',
-                user: {
-                    id: createdUser._id,
-                    ...createdUser
-                },
-            };
-        } catch (err) {
-            console.error(err); // log lỗi thật ra console
-            throw new InternalServerErrorException(err.message);
-        }
+       return this.userService.handleRegister(user)
     }
 
     async registerUser(user: RegisterDto) {
 
-        const codeId = uuidv4();
-
-        const codeExpired = dayjs().add(30, 's').toDate();
-
-        const createdUser = await this.userModel.create({
-            ...user,
-            isActive: false,
-            codeId: codeId,
-            codeExpired
-        })
-
-        // send email
-
-        return {
-            message: 'Đăng ký thành công!',
-            user: createdUser
-        }
-
-
+        return this.userService.handleRegister(user)
 
     }
 

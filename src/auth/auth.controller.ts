@@ -7,12 +7,16 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOauthGuard } from './guards/google-oauth.guard';
 import { RegisterDto } from './dto/register.dto';
+import { MailerService } from '@nestjs-modules/mailer';
 
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+    constructor(
+        private authService: AuthService,
+        private readonly mailerService: MailerService
+    ) { }
 
     @HttpCode(HttpStatus.OK)
     @UseGuards(LocalAuthGuard)
@@ -50,8 +54,27 @@ export class AuthController {
     @UseGuards(GoogleOauthGuard)
     async googleAuthRedirect(@Request() req) {
 
-       return this.authService.signInGoogle(req.user);
+        return this.authService.signInGoogle(req.user);
     }
+
+    @Get('test-send-mail')
+    @Public()
+    testMail() {
+        this.mailerService
+            .sendMail({
+                to: 'truongtq753@gmail.com', // list of receivers
+                subject: 'Testing Nest MailerModule ✔', // Subject line
+                text: 'welcome', // plaintext body
+                template: "register",
+                context: {
+                    name: "TQT",
+                    activationCode: 123456789
+                }
+
+            })
+        return "ok";
+    }
+
 
 
 }
