@@ -1,14 +1,15 @@
-import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request, Body } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request, Body, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { Public, ResponseMessage } from './decorators/public.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOauthGuard } from './guards/google-oauth.guard';
 import { RegisterDto } from './dto/register.dto';
 import { MailerService } from '@nestjs-modules/mailer';
-
+import { ForgotPasswordDto } from './dto/forget-password.dto';
+import { Response } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -24,8 +25,11 @@ export class AuthController {
     @Public()
     @ApiBody({ type: SignInDto })
     @ResponseMessage("Fetch login")
-    async signIn(@Request() req) {
-        return this.authService.signIn(req.user);
+    async signIn(
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        return this.authService.signIn(req, res);
     }
 
     @HttpCode(HttpStatus.OK)
@@ -38,7 +42,8 @@ export class AuthController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
+    // @ApiBearerAuth()
+    @ApiCookieAuth('access_token')
     @Get('profile')
     getProfile(@Request() req) {
         return req.user;
@@ -52,9 +57,9 @@ export class AuthController {
     @Get('google/redirect')
     @Public()
     @UseGuards(GoogleOauthGuard)
-    async googleAuthRedirect(@Request() req) {
+    async googleAuthRedirect(@Request() req, @Res({ passthrough: true }) res: Response,) {
 
-        return this.authService.signInGoogle(req.user);
+        return this.authService.signInGoogle(req.user, res);
     }
 
     @Get('test-send-mail')
@@ -74,6 +79,25 @@ export class AuthController {
             })
         return "ok";
     }
+
+    @Post('forget-password')
+    @Public()
+    forgetPassword(@Body() body: ForgotPasswordDto) {
+        return this.authService.forgetPassword(body.email)
+    }
+
+    @Post('logout')
+    @Public()
+    logout(@Res({ passthrough: true }) res: Response) {
+        res.clearCookie('access_token', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+        });
+
+        return { message: 'Đăng xuất thành công!' };
+    }
+
 
 
 

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
+
 
 @Injectable()
 export class UserService {
@@ -23,6 +24,14 @@ export class UserService {
         const user = await this.userModel.exists({ email });
         if (user) return true;
         return false;
+    }
+
+    getCodeExpired = () => {
+        const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
+        const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
+        const codeExpired = dayjs().add(expireValue, expireUnit as dayjs.ManipulateType).toDate();
+
+        return codeExpired
     }
 
 
@@ -119,7 +128,7 @@ export class UserService {
 
             const codeId = uuidv4();
 
-            const codeExpired = dayjs().add(30, 's').toDate();
+            const codeExpired = this.getCodeExpired()
 
             const createdUser = await this.userModel.create({
                 username,
@@ -167,43 +176,64 @@ export class UserService {
     async handleRegisterWithGmail(user) {
         try {
             const { username, email } = user
-            const codeId = uuidv4();
 
-            const codeExpired = dayjs().add(30, 's').toDate();
 
-            const createdUser = await this.userModel.create({
+           const createUser =  await this.userModel.create({
                 username,
                 email,
-                isActive: false,
-                codeId: codeId,
-                codeExpired
+                isActive: true
             })
 
-            // send email
-            this.mailerService
-                .sendMail({
-                    to: createdUser.email, // list of receivers
-                    subject: 'Testing Nest MailerModule ✔', // Subject line
-                    text: 'welcome', // plaintext body
-                    template: "register",
-                    context: {
-                        name: createdUser?.username ?? createdUser.email,
-                        activationCode: createdUser.codeId
-                    }
+            return createUser
 
-                })
+        } catch (err) {
+            throw new InternalServerErrorException(err.message);
+        }
+    }
+
+    async sendResetPasswordEmail(user: UserDocument) {
+        try {
+            const codeId = uuidv4();
+            // const codeExpired = dayjs().add(30, "s").toDate();
+            const codeExpired = this.getCodeExpired()
+
+            // Gửi email reset password
+            await this.mailerService.sendMail({
+                to: user.email,
+                subject: "Reset your password",
+                text: "welcome",
+                template: "reset-password",
+                context: {
+                    name: user?.username ?? user.email,
+                    resetLink: `https://yourapp.com/reset-password/${codeId}`,
+                },
+            });
+
+            // Cập nhật user trực tiếp
+            user.codeId = codeId;
+            user.codeExpired = codeExpired;
+            await user.save();
+        } catch (err) {
+            throw new InternalServerErrorException(err.message);
+        }
+    }
+
+
+    async forgetPassword(email: string) {
+        try {
+
+            const userExists = await this.findByEmail(email);
+
+            if (userExists) {
+                await this.sendResetPasswordEmail(userExists)
+            }
 
             return {
-                message: 'Email đã được gửi code hãy chuyển qua trang active',
-                user: {
-                    id: createdUser._id,
-                    username: createdUser.username,
-                    email: createdUser.email,
-                    isActive: createdUser.isActive,
-                    codeId: createdUser.codeId,
-                    codeExpired: createdUser.codeExpired
-                },
+                message: 'If an account with that email exists, you will receive a password reset email shortly.'
             };
+
+
+
         } catch (err) {
             throw new InternalServerErrorException(err.message);
         }
@@ -213,10 +243,11 @@ export class UserService {
         try {
             const codeId = uuidv4();
 
-            const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
-            const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
+            // const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
+            // const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
+            // const codeExpired = dayjs().add(expireValue, expireUnit as dayjs.ManipulateType).toDate();
 
-            const codeExpired = dayjs().add(expireValue, expireUnit as dayjs.ManipulateType).toDate();
+            const codeExpired = this.getCodeExpired()
 
             // send email
             this.mailerService

@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 
 
 async function bootstrap() {
@@ -51,11 +52,14 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Social Media API')
     .setVersion('1.0')
-    .addBearerAuth()
+    // .addBearerAuth()
+    .addCookieAuth('access_token')
     .addServer('http://localhost:8080')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/v1/docs', app, document);
+
+  app.use(cookieParser());
 
   await app.listen(port);
 }

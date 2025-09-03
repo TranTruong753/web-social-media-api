@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs'; // 👈 dùng promises để xóa ảnh
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,7 +13,8 @@ import { Public } from 'src/auth/decorators/public.decorator';
 
 
 @ApiTags('User')
-@ApiBearerAuth() 
+// @ApiBearerAuth()
+@ApiCookieAuth()
 @Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) { }
@@ -81,6 +82,7 @@ export class UserController {
     }
 
     @Patch('update-user/:id')
+    @Public()
     @UseInterceptors(FileInterceptor('avatar', {
         storage: diskStorage({
             destination: './uploads/avatars',
