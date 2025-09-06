@@ -33,7 +33,7 @@ export class User {
   @Prop({ default: false })
   isActive?: boolean;
 
-  @Prop()
+  @Prop({ default: false })
   isOnline?: boolean;
 
   @Prop({ default: false })
@@ -44,6 +44,9 @@ export class User {
 
   @Prop()
   codeExpired: Date;
+
+  @Prop()
+  tokenHash: string
 
 }
 

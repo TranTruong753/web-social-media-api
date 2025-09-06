@@ -5,6 +5,7 @@ import { UserModule } from 'src/user/user.module';
 import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './guards/local.strategy';
 import { JwtStrategy } from './guards/jwt.strategy';
+import { JwtRefreshStrategy } from './guards/jwt-refresh.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { GoogleStrategy } from './guards/google.strategy';
@@ -29,7 +30,7 @@ import { User, UserSchema } from 'src/user/schemas/user.schema';
     }),
     PassportModule
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, JwtRefreshStrategy, GoogleStrategy],
   controllers: [AuthController],
   // exports: [AuthService]
   exports: [AuthService, JwtModule],

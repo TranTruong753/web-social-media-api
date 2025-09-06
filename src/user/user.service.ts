@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, InternalServerError
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUserDto } from './dto/search-user.dto';
 import { hashPasswordHelper } from 'src/common/utils/utils';
@@ -71,6 +71,24 @@ export class UserService {
         }
 
         return updatedUser
+
+    }
+
+    async updateRefreshToken(id: string, refreshToken: string) {
+
+        const hash = await hashPasswordHelper(refreshToken);
+
+        const user = await this.userModel.findByIdAndUpdate(
+            { _id: id },
+            { tokenHash: hash },
+            { new: true },
+        );
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        return user;
 
     }
 
@@ -178,7 +196,7 @@ export class UserService {
             const { username, email } = user
 
 
-           const createUser =  await this.userModel.create({
+            const createUser = await this.userModel.create({
                 username,
                 email,
                 isActive: true

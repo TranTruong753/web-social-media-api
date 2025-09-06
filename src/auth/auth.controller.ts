@@ -10,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ForgotPasswordDto } from './dto/forget-password.dto';
 import { Response } from 'express';
+import { JwtRefreshGuard } from './guards/jwt-refresh-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -95,7 +96,21 @@ export class AuthController {
             sameSite: 'strict',
         });
 
+         res.clearCookie('refresh_token', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+        });
+
         return { message: 'Đăng xuất thành công!' };
+    }
+
+    @UseGuards(JwtRefreshGuard)
+    @Post('refresh')
+    async refresh(@Req() req, @Res({ passthrough: true }) res: Response) {
+        const user = req.user; // có từ JwtRefreshStrategy.validate()
+
+        return this.authService.resetRefreshToken(user,res)
     }
 
 
