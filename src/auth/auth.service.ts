@@ -19,13 +19,6 @@ export class AuthService {
         return this.jwtService.sign(payload);
     }
 
-    // async generateRefreshToken(payload: any) {
-    //     return this.jwtService.sign(payload, {
-    //         secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
-    //         expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-    //     });
-    // }
-
     async generateTokens(payload: any) {
         const accessToken = this.jwtService.sign(payload);
 
@@ -66,8 +59,6 @@ export class AuthService {
             username: userExists.username,
         };
 
-        // const access_token = this.generateJwt(payload)
-
         const { accessToken, refreshToken } = await this.generateTokens(payload);
 
         await this.userService.updateRefreshToken(userExists.id, refreshToken);
@@ -75,7 +66,8 @@ export class AuthService {
         res.cookie('access_token', accessToken, {
             httpOnly: true,   // chặn JS truy cập
             secure: true,     // chỉ gửi qua HTTPS
-            sameSite: 'strict',
+            // sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 1000 * 60 * 60, // 1h
         });
 
@@ -87,16 +79,9 @@ export class AuthService {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
         });
 
+        const redirect = this.configService.get<string>('LINK_REDIRECT')
 
-        return {
-            message: 'Đăng nhập thành công!',
-            user: {
-                id: userExists._id,
-                email: userExists.email,
-                username: userExists.username
-            },
-            accessToken,
-        };
+        return res.redirect(redirect);
     }
 
 
@@ -110,7 +95,7 @@ export class AuthService {
             username: user.username
         };
 
-          const { accessToken, refreshToken } = await this.generateTokens(payload);
+        const { accessToken, refreshToken } = await this.generateTokens(payload);
 
         res.cookie('access_token', accessToken, {
             httpOnly: true,  // JS không đọc được
@@ -119,7 +104,7 @@ export class AuthService {
             maxAge: 15 * 60 * 1000, // 15 phút
         });
 
-           // set cookie refresh token mới
+        // set cookie refresh token mới
         res.cookie('refresh_token', refreshToken, {
             httpOnly: true,
             secure: true,
@@ -150,12 +135,12 @@ export class AuthService {
 
         const { accessToken, refreshToken } = await this.generateTokens(payload);
 
-        await this.userService.updateRefreshToken(user.id, refreshToken);
+        await this.userService.updateRefreshToken(newUser.id, refreshToken);
 
-        res.cookie('access_token', accessToken, {
+         res.cookie('access_token', accessToken, {
             httpOnly: true,   // chặn JS truy cập
             secure: true,     // chỉ gửi qua HTTPS
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 1000 * 60 * 60, // 1h
         });
 
@@ -168,15 +153,8 @@ export class AuthService {
         });
 
 
-        return {
-            message: 'Đăng nhập thành công!',
-            user: {
-                id: newUser._id,
-                email: newUser.email,
-                username: newUser.username
-            },
-            accessToken,
-        };
+        const redirect = this.configService.get<string>('LINK_REDIRECT')
+        return res.redirect(redirect);
 
     }
 
