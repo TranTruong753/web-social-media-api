@@ -100,7 +100,7 @@ export class AuthService {
         res.cookie('access_token', accessToken, {
             httpOnly: true,  // JS không đọc được
             secure: true,    // bật khi chạy HTTPS
-            sameSite: 'strict', // chống CSRF
+            sameSite: 'lax', // chống CSRF
             maxAge: 15 * 60 * 1000, // 15 phút
         });
 
@@ -113,12 +113,8 @@ export class AuthService {
         });
 
         return {
-            user: {
-                id: user._id,
-                email: user.email,
-                username: user.username
-            },
-            accessToken,
+            status: true,
+            message: 'Đăng nhập thành công',
         };
 
     }
@@ -137,7 +133,7 @@ export class AuthService {
 
         await this.userService.updateRefreshToken(newUser.id, refreshToken);
 
-         res.cookie('access_token', accessToken, {
+        res.cookie('access_token', accessToken, {
             httpOnly: true,   // chặn JS truy cập
             secure: true,     // chỉ gửi qua HTTPS
             sameSite: 'lax',

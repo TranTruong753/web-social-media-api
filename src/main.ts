@@ -17,7 +17,7 @@ async function bootstrap() {
   const port = configService.get('PORT');
 
   app.enableCors({
-    origin: '*', // hoặc '*' nếu bạn đang test
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true, // Nếu frontend dùng cookie/session
   });
