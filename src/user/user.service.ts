@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, InternalServerError
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId } from 'mongoose';
+import { Model } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUserDto } from './dto/search-user.dto';
 import { hashPasswordHelper } from 'src/common/utils/utils';
@@ -37,17 +37,17 @@ export class UserService {
 
     async create(createUserDto: CreateUserDto): Promise<UserDocument> {
 
-        const { username, email, password, phone, avatar, bio, birthDate } = createUserDto;
+        const { username, email, password, phone, gender, avatar, bio, birthDate } = createUserDto;
         //check email
         const isExist = await this.isEmailExist(email);
         if (isExist === true) {
-            throw new BadRequestException(`Email đã tồn tại: ${email}. Vui lòng sử dụng email khác.`)
+            throw new ConflictException(`Email đã được đăng kí.`)
         }
 
         //hash password
         const hashPassword = await hashPasswordHelper(password);
 
-        const user = new this.userModel({ username, email, password: hashPassword, phone, avatar, bio, birthDate });
+        const user = new this.userModel({ username, email, password: hashPassword, phone, gender, avatar, bio, birthDate });
         return user.save();
     }
 
@@ -133,12 +133,12 @@ export class UserService {
 
     async handleRegister(user) {
         try {
-            const { username, email, password, bio, birthDate, phone } = user
+            const { username, email, password, bio, birthDate, phone, gender } = user
 
             //check email
             const isExist = await this.isEmailExist(email);
             if (isExist === true) {
-                throw new BadRequestException(`Email đã tồn tại: ${email}. Vui lòng sử dụng email khác.`)
+                throw new ConflictException(`Email đã tồn tại: ${email}`)
             }
 
             //hash password
@@ -154,6 +154,7 @@ export class UserService {
                 password: hashPassword,
                 bio,
                 phone,
+                gender,
                 birthDate,
                 isActive: false,
                 codeId: codeId,
@@ -185,6 +186,31 @@ export class UserService {
                     codeExpired: createdUser.codeExpired
                 },
             };
+        } catch (err) {
+            throw new InternalServerErrorException(err.message);
+        }
+    }
+
+    async handleActivateAccount(codeId : string) {
+        try {
+            const account = await this.userModel.findOne({ codeId: codeId }).exec();
+
+            if (!account) throw new NotFoundException('Mã activate không hợp lệ hoặc đã hết hạn!');
+
+
+            //check expire code
+            const isBeforeCheck = dayjs().isBefore(account.codeExpired);
+
+            if(isBeforeCheck){
+                await this.userModel.updateOne({_id: account.id},{
+                    isActive: true
+                })
+                return { isBeforeCheck }
+            }else {
+                throw new BadRequestException('Mã activate không hợp lệ hoặc đã hết hạn!')
+            }
+
+
         } catch (err) {
             throw new InternalServerErrorException(err.message);
         }

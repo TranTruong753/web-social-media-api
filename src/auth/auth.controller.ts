@@ -1,16 +1,17 @@
 import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request, Body, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
-import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { Public, ResponseMessage } from './decorators/public.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOauthGuard } from './guards/google-oauth.guard';
-import { RegisterDto } from './dto/register.dto';
+import { CodeAuthDto, RegisterDto } from './dto/register.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ForgotPasswordDto } from './dto/forget-password.dto';
 import { Response } from 'express';
 import { JwtRefreshGuard } from './guards/jwt-refresh-auth.guard';
+import { Gender } from 'src/common/enums/gender.enum';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -41,6 +42,13 @@ export class AuthController {
     async register(@Body() user: RegisterDto) {
         return this.authService.registerUser(user);
     }
+
+    @Post('check-code')
+    @Public()
+    checkCode(@Body() data: CodeAuthDto) {
+        return this.authService.activateUser(data);
+    }
+
 
     @UseGuards(JwtAuthGuard)
     // @ApiBearerAuth()
@@ -96,7 +104,7 @@ export class AuthController {
             sameSite: 'strict',
         });
 
-         res.clearCookie('refresh_token', {
+        res.clearCookie('refresh_token', {
             httpOnly: true,
             secure: true,
             sameSite: 'strict',
@@ -110,7 +118,7 @@ export class AuthController {
     async refresh(@Req() req, @Res({ passthrough: true }) res: Response) {
         const user = req.user; // có từ JwtRefreshStrategy.validate()
 
-        return this.authService.resetRefreshToken(user,res)
+        return this.authService.resetRefreshToken(user, res)
     }
 
 

@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, InternalServerErrorException, Unauthor
 import { JwtService } from '@nestjs/jwt';
 import { comparePasswordHelper, hashPasswordHelper } from 'src/common/utils/utils';
 import { UserService } from 'src/user/user.service';
-import { RegisterDto } from './dto/register.dto';
+import { CodeAuthDto, RegisterDto } from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
 
 
@@ -158,6 +158,10 @@ export class AuthService {
 
         return this.userService.handleRegister(user)
 
+    }
+
+    async activateUser(data: CodeAuthDto) {
+        return this.userService.handleActivateAccount(data.codeId)
     }
 
     async forgetPassword(email) {

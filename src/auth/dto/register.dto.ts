@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID, Matches } from "class-validator";
-import { CreateUserDto } from "src/user/dto/create-user.dto";
+import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, Matches } from "class-validator";
+import { Gender } from "src/common/enums/gender.enum";
+
 
 export class RegisterDto {
     @ApiProperty({ required: true, description: 'Họ và tên', example: 'Nguyễn Văn A' })
@@ -17,10 +18,6 @@ export class RegisterDto {
     @IsNotEmpty({ message: 'Mật khẩu không được để trống!' })
     readonly password: string
 
-    @ApiProperty({ required: false, description: 'Tiểu sử người dùng', example: '18 tuổi nhiệt quyết' })
-    @IsOptional()
-    readonly bio?: string
-
     @ApiProperty({ required: false, description: 'Ngày sinh người dùng', example: '2003-05-19' })
     @IsOptional()
     @IsDateString({}, { message: 'Ngày sinh phải đúng định dạng ISO (yyyy-mm-dd).' })
@@ -31,5 +28,17 @@ export class RegisterDto {
     @Matches(/^0\d{9}$/, { message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 0.' })
     readonly phone?: string
 
+    @ApiProperty({ required: false, description: 'Giới tính người dùng', example: 'male or female or other' })
+    @IsEnum(Gender, { message: 'Gender must be male, female, or other' })
+    readonly gender?: Gender;
 
+
+
+}
+
+export class CodeAuthDto {
+    @ApiProperty({ required: true, description: 'Code Id', example: 'uuid' })
+    @IsUUID()
+    @IsNotEmpty({ message: 'Code Id không được để trống!' })
+    readonly codeId: string
 }

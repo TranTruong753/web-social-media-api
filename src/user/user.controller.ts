@@ -10,6 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { cleanObject } from 'src/common/utils/utils';
 import { SearchUserDto } from './dto/search-user.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
+import { Gender } from 'src/common/enums/gender.enum';
 
 
 @ApiTags('User')
@@ -45,6 +46,10 @@ export class UserController {
                 avatar: {
                     type: 'string',
                     format: 'binary'
+                },
+                gender: {
+                    type: 'string',
+                    enum: Object.values(Gender)
                 }
             },
             required: ['username', 'email', 'password']

@@ -1,6 +1,7 @@
 // dto/create-user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsDateString, Matches, IsUUID } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsDateString, Matches, IsUUID, IsEnum } from 'class-validator';
+import { Gender } from 'src/common/enums/gender.enum';
 
 export class CreateUserDto {
 
@@ -35,6 +36,10 @@ export class CreateUserDto {
   @IsOptional()
   @Matches(/^0\d{9}$/, { message: 'Số điện thoại phải có 10 chữ số và bắt đầu bằng 0.' })
   readonly phone?: string
+
+  @ApiProperty({ required: false, description: 'Giới tính người dùng', example: 'male, female, other' })
+  @IsEnum(Gender, { message: 'Gender must be male, female, or other' })
+  gender: Gender;
 
 
 }

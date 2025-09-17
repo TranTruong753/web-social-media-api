@@ -1,6 +1,7 @@
 // user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { Gender } from 'src/common/enums/gender.enum';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -26,6 +27,13 @@ export class User {
 
   @Prop()
   phone?: string;
+
+  @Prop({
+    type: String,
+    enum: Gender,
+    required: true,
+  })
+  gender: Gender;
 
   @Prop({ default: "USERS" })
   role: string;
