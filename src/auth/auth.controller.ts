@@ -49,6 +49,12 @@ export class AuthController {
         return this.authService.activateUser(data);
     }
 
+    @Post('resend-code')
+    @Public()
+    resendCode(@Body() data: CodeAuthDto) {
+        return this.authService.resendCodeId(data);
+    }
+
 
     @UseGuards(JwtAuthGuard)
     // @ApiBearerAuth()

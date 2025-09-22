@@ -191,23 +191,24 @@ export class UserService {
         }
     }
 
-    async handleActivateAccount(codeId : string) {
+    async handleActivateAccount(id: string, codeId: string) {
         try {
-            const account = await this.userModel.findOne({ codeId: codeId }).exec();
+            const account = await this.userModel.findOne({ _id: id, codeId: codeId }).exec();
 
-            if (!account) throw new NotFoundException('Mã activate không hợp lệ hoặc đã hết hạn!');
+            if (!account) throw new NotFoundException('The activation code is invalid or has expired.!');
 
+            if(account.isActive) throw new ConflictException('Account has already been activated');
 
             //check expire code
             const isBeforeCheck = dayjs().isBefore(account.codeExpired);
 
-            if(isBeforeCheck){
-                await this.userModel.updateOne({_id: account.id},{
+            if (isBeforeCheck) {
+                await this.userModel.updateOne({ _id: account.id }, {
                     isActive: true
                 })
                 return { isBeforeCheck }
-            }else {
-                throw new BadRequestException('Mã activate không hợp lệ hoặc đã hết hạn!')
+            } else {
+                throw new BadRequestException('The activation code is invalid or has expired.!')
             }
 
 
@@ -283,40 +284,38 @@ export class UserService {
         }
     }
 
-    async sendCodeId(user) {
+    async resendCodeId(id: string) {
         try {
+
+            const user = await this.userModel.findOne({ _id: id }).exec()
+
+            if (!user) throw new BadRequestException('what is going wrong!')
+
             const codeId = uuidv4();
-
-            // const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
-            // const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
-            // const codeExpired = dayjs().add(expireValue, expireUnit as dayjs.ManipulateType).toDate();
-
             const codeExpired = this.getCodeExpired()
+
+            user.codeId = codeId;
+            user.codeExpired = codeExpired;
+            await user.save();
 
             // send email
             this.mailerService
                 .sendMail({
                     to: user.email, // list of receivers
-                    subject: 'Testing Nest MailerModule ✔', // Subject line
-                    text: 'welcome', // plaintext body
-                    template: "register",
+                    subject: 'Resend Code ✔', // Subject line
+                    text: 'Resend Code', // plaintext body
+                    template: "resend",
                     context: {
                         name: user?.username ?? user.email,
-                        activationCode: user.codeId
+                        activationCode: codeId
                     }
 
                 })
 
             return {
-                message: 'Chuyển qua trang Active!',
-                user: {
-                    id: user._id,
-                    username: user.username,
-                    email: user.email,
-                    isActive: user.isActive,
-                    codeId,
-                    codeExpired
-                }
+                status: true,
+                message: 'Resend Code ID success!',
+
             }
 
 

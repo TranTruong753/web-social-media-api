@@ -36,9 +36,18 @@ export class RegisterDto {
 
 }
 
+export class ResendCodeDto {
+    @ApiProperty({ required: true, description: 'Id', example: 'Id' })
+    @IsNotEmpty({ message: "id không được để trống" })
+    id: string;
+}
 export class CodeAuthDto {
+    @ApiProperty({ required: true, description: 'Id', example: 'Id' })
+    @IsNotEmpty({ message: "id không được để trống" })
+    id: string;
+
+
     @ApiProperty({ required: true, description: 'Code Id', example: 'uuid' })
-    @IsUUID()
     @IsNotEmpty({ message: 'Code Id không được để trống!' })
     readonly codeId: string
 }
