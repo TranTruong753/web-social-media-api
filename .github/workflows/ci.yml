@@ -1,0 +1,47 @@
+name: nestjs-ci
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source code
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js (NestJS dùng Node)
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Lint code
+      - name: Run Linter
+        run: npm run lint -- --max-warnings=0
+
+      # 5. Run tests
+      - name: Run Tests
+        run: npm run test -- --passWithNoTests
+
+      # 6. Run e2e tests (nếu có)
+      - name: Run E2E Tests
+        run: npm run test:e2e -- --passWithNoTests
+
+      # 7. Build project
+      - name: Build NestJS project
+        run: npm run build
+
+      # 8. (Optional) Build Docker image
+      # - name: Build Docker image
+      #   run: docker build -t nestjs-app .
