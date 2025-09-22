@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { comparePasswordHelper } from 'src/common/utils/utils';
+import { comparePasswordHelper } from 'src/common/utils';
 import { UserService } from 'src/user/user.service';
 import {
   AuthenticatedRequest,
@@ -18,7 +18,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async generateJwt(payload) {
     return this.jwtService.sign(payload);

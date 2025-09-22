@@ -8,7 +8,7 @@ import {
   IsString,
   Matches,
 } from 'class-validator';
-import { Gender } from 'src/common/enums/gender.enum';
+import { Gender } from 'src/common/enums';
 
 export class RegisterDto {
   @ApiProperty({

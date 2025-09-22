@@ -18,17 +18,17 @@ import { ApiBody, ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { cleanObject } from 'src/common/utils/utils';
+import { cleanObject } from 'src/common/utils';
 import { SearchUserDto } from './dto/search-user.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
-import { Gender } from 'src/common/enums/gender.enum';
+import { Gender } from 'src/common/enums';
 
 @ApiTags('User')
 // @ApiBearerAuth()
 @ApiCookieAuth()
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Post('create-user')
   @Public()

@@ -11,7 +11,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUserDto } from './dto/search-user.dto';
-import { hashPasswordHelper } from 'src/common/utils/utils';
+import { hashPasswordHelper } from 'src/common/utils';
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
@@ -23,7 +23,7 @@ export class UserService {
     @InjectModel(User.name) private userModel: Model<User>,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   isEmailExist = async (email: string) => {
     const user = await this.userModel.exists({ email });

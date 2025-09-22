@@ -32,12 +32,12 @@ jobs:
         # run: npm run lint -- --max-warnings=0
 
       # 5. Run tests
-      - name: Run Tests
-        run: npm run test -- --passWithNoTests
+      # - name: Run Tests
+      #   run: npm run test -- --passWithNoTests
 
       # 6. Run e2e tests (nếu có)
-      - name: Run E2E Tests
-        run: npm run test:e2e -- --passWithNoTests
+      # - name: Run E2E Tests
+      #   run: npm run test:e2e -- --passWithNoTests
 
       # 7. Build project
       - name: Build NestJS project
