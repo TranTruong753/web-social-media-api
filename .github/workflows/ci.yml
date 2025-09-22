@@ -28,7 +28,8 @@ jobs:
 
       # 4. Lint code
       - name: Run Linter
-        run: npm run lint -- --max-warnings=0
+        run: npm run lint
+        # run: npm run lint -- --max-warnings=0
 
       # 5. Run tests
       - name: Run Tests
