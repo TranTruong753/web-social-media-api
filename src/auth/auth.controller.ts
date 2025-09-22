@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request, Body, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { Public, ResponseMessage } from './decorators/public.decorator';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -11,7 +11,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ForgotPasswordDto } from './dto/forget-password.dto';
 import { Response } from 'express';
 import { JwtRefreshGuard } from './guards/jwt-refresh-auth.guard';
-import { Gender } from 'src/common/enums/gender.enum';
+
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -57,7 +57,6 @@ export class AuthController {
 
 
     @UseGuards(JwtAuthGuard)
-    // @ApiBearerAuth()
     @ApiCookieAuth('access_token')
     @Get('profile')
     getProfile(@Request() req) {
@@ -126,8 +125,6 @@ export class AuthController {
 
         return this.authService.resetRefreshToken(user, res)
     }
-
-
 
 
 }
