@@ -1,204 +1,197 @@
-import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { comparePasswordHelper, hashPasswordHelper } from 'src/common/utils/utils';
+import { comparePasswordHelper } from 'src/common/utils/utils';
 import { UserService } from 'src/user/user.service';
-import { CodeAuthDto, RegisterDto, ResendCodeDto } from './dto/register.dto';
+import {
+  AuthenticatedRequest,
+  CodeAuthDto,
+  JwtPayload,
+  RegisterDto,
+  ResendCodeDto,
+} from './dto/register.dto';
 import { ConfigService } from '@nestjs/config';
-
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
+  constructor(
+    private userService: UserService,
+    private jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
-    constructor(
-        private userService: UserService,
-        private jwtService: JwtService,
-        private readonly configService: ConfigService
-    ) { }
+  async generateJwt(payload) {
+    return this.jwtService.sign(payload);
+  }
 
-    async generateJwt(payload) {
-        return this.jwtService.sign(payload);
+  async generateTokens(payload) {
+    const accessToken = this.jwtService.sign(payload);
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.userService.findByEmail(email);
+    if (!user) return null;
+
+    const isValidPassword = await comparePasswordHelper(pass, user.password);
+    if (!isValidPassword) return null;
+    return user;
+  }
+
+  async signInGoogle(user: JwtPayload, res: Response): Promise<void> {
+    if (!user) {
+      throw new BadRequestException('Unauthenticated');
     }
 
-    async generateTokens(payload: any) {
-        const accessToken = this.jwtService.sign(payload);
+    const userExists = await this.userService.findByEmail(user.email);
 
-        const refreshToken = this.jwtService.sign(payload, {
-            secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
-            expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-        });
-
-        return { accessToken, refreshToken };
+    if (!userExists) {
+      return this.registerGoogleUser(user, res);
     }
 
+    const payload = {
+      id: userExists._id,
+      email: userExists.email,
+      username: userExists.username,
+    };
 
+    const { accessToken, refreshToken } = await this.generateTokens(payload);
 
-    async validateUser(email: string, pass: string): Promise<any> {
-        const user = await this.userService.findByEmail(email);
-        if (!user) return null;
+    await this.userService.updateRefreshToken(userExists.id, refreshToken);
 
-        const isValidPassword = await comparePasswordHelper(pass, user.password);
-        if (!isValidPassword) return null;
-        return user;
-    }
+    res.cookie('access_token', accessToken, {
+      httpOnly: true, // chặn JS truy cập
+      secure: true, // chỉ gửi qua HTTPS
+      // sameSite: 'strict',
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60, // 1h
+    });
 
+    // set cookie cho refresh token
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    });
 
-    async signInGoogle(user, res: any) {
-        if (!user) {
-            throw new BadRequestException('Unauthenticated');
-        }
+    const redirect = this.configService.get<string>('LINK_REDIRECT');
 
-        const userExists = await this.userService.findByEmail(user.email);
+    return res.redirect(redirect as string);
+  }
 
-        if (!userExists) {
-            return this.registerGoogleUser(user, res);
-        }
+  async signIn(req: AuthenticatedRequest, res: Response) {
+    const user = req.user;
 
-        const payload = {
-            id: userExists._id,
-            email: userExists.email,
-            username: userExists.username,
-        };
+    const payload = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    };
 
-        const { accessToken, refreshToken } = await this.generateTokens(payload);
+    const { accessToken, refreshToken } = await this.generateTokens(payload);
 
-        await this.userService.updateRefreshToken(userExists.id, refreshToken);
+    await this.userService.updateRefreshToken(user.id, refreshToken);
 
-        res.cookie('access_token', accessToken, {
-            httpOnly: true,   // chặn JS truy cập
-            secure: true,     // chỉ gửi qua HTTPS
-            // sameSite: 'strict',
-            sameSite: 'lax',
-            maxAge: 1000 * 60 * 60, // 1h
-        });
+    res.cookie('access_token', accessToken, {
+      httpOnly: true, // JS không đọc được
+      secure: true, // bật khi chạy HTTPS
+      sameSite: 'lax', // chống CSRF
+      maxAge: 15 * 60 * 1000, // 15 phút
+    });
 
-        // set cookie cho refresh token
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-        });
+    // set cookie refresh token mới
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
-        const redirect = this.configService.get<string>('LINK_REDIRECT')
+    return {
+      status: true,
+      message: 'Đăng nhập thành công',
+    };
+  }
 
-        return res.redirect(redirect);
-    }
+  async registerGoogleUser(user, res: Response): Promise<void> {
+    const newUser = await this.userService.handleRegisterWithGmail(user);
 
+    const payload = {
+      id: newUser.id,
+      email: newUser.email,
+      username: newUser.username,
+    };
 
-    async signIn(req: any, res: any) {
+    const { accessToken, refreshToken } = await this.generateTokens(payload);
 
-        const user = req.user
+    await this.userService.updateRefreshToken(newUser.id, refreshToken);
 
-        const payload = {
-            id: user._id,
-            email: user.email,
-            username: user.username
-        };
+    res.cookie('access_token', accessToken, {
+      httpOnly: true, // chặn JS truy cập
+      secure: true, // chỉ gửi qua HTTPS
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60, // 1h
+    });
 
-        const { accessToken, refreshToken } = await this.generateTokens(payload);
+    // set cookie cho refresh token
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    });
 
-        res.cookie('access_token', accessToken, {
-            httpOnly: true,  // JS không đọc được
-            secure: true,    // bật khi chạy HTTPS
-            sameSite: 'lax', // chống CSRF
-            maxAge: 15 * 60 * 1000, // 15 phút
-        });
+    const redirect = this.configService.get<string>('LINK_REDIRECT');
+    return res.redirect(redirect as string);
+  }
 
-        // set cookie refresh token mới
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+  async registerUser(user: RegisterDto) {
+    return this.userService.handleRegister(user);
+  }
 
-        return {
-            status: true,
-            message: 'Đăng nhập thành công',
-        };
+  async activateUser(data: CodeAuthDto) {
+    return this.userService.handleActivateAccount(data.id, data.codeId);
+  }
 
-    }
+  async resendCodeId(data: ResendCodeDto) {
+    return this.userService.resendCodeId(data.id);
+  }
 
+  async forgetPassword(email) {
+    return this.userService.forgetPassword(email);
+  }
 
-    async registerGoogleUser(user, res) {
-        const newUser = await this.userService.handleRegisterWithGmail(user)
+  async resetRefreshToken(user: JwtPayload, res: Response) {
+    const payload = { id: user.id, email: user.email, username: user.username };
 
-        const payload = {
-            id: newUser.id,
-            email: newUser.email,
-            username: newUser.username,
-        };
+    const { accessToken, refreshToken } = await this.generateTokens(payload);
 
-        const { accessToken, refreshToken } = await this.generateTokens(payload);
+    // lưu refresh token mới vào DB (rotate)
+    await this.userService.updateRefreshToken(user.id, refreshToken);
 
-        await this.userService.updateRefreshToken(newUser.id, refreshToken);
+    // set lại cookie mới
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 phút
+    });
 
-        res.cookie('access_token', accessToken, {
-            httpOnly: true,   // chặn JS truy cập
-            secure: true,     // chỉ gửi qua HTTPS
-            sameSite: 'lax',
-            maxAge: 1000 * 60 * 60, // 1h
-        });
+    // set cookie refresh token mới
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
-        // set cookie cho refresh token
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-        });
-
-
-        const redirect = this.configService.get<string>('LINK_REDIRECT')
-        return res.redirect(redirect);
-
-    }
-
-    async registerUser(user: RegisterDto) {
-
-        return this.userService.handleRegister(user)
-
-    }
-
-    async activateUser(data: CodeAuthDto) {
-        return this.userService.handleActivateAccount(data.id, data.codeId)
-    }
-
-    async resendCodeId(data: ResendCodeDto){
-        return this.userService.resendCodeId(data.id)
-    }
-
-    async forgetPassword(email) {
-        return this.userService.forgetPassword(email)
-    }
-
-    async resetRefreshToken(user, res) {
-        const payload = { id: user._id, email: user.email, username: user.username };
-
-        const { accessToken, refreshToken } = await this.generateTokens(payload);
-
-        // lưu refresh token mới vào DB (rotate)
-        await this.userService.updateRefreshToken(user._id, refreshToken);
-
-        // set lại cookie mới
-        res.cookie('access_token', accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 15 * 60 * 1000, // 15 phút
-        });
-
-        // set cookie refresh token mới
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-
-        return { accessToken };
-    }
-
+    return { accessToken };
+  }
 }
-
-

@@ -27,10 +27,15 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      // dùng auth tạm thời để vậy
+      '@typescript-eslint/no-unsafe-assignment': 'off', // cho phép gán any
+      '@typescript-eslint/no-unsafe-return': 'off', // cho phép return any
+      '@typescript-eslint/no-unsafe-member-access': 'off', // cho phép truy cập any
+      // dùng auth tạm thời để vậy
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       '@typescript-eslint/require-await': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      // '@typescript-eslint/no-unsafe-assignment': 'warn',
     },
   },
 );

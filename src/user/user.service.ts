@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -11,317 +17,316 @@ import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 
-
 @Injectable()
 export class UserService {
-    constructor(
-        @InjectModel(User.name) private userModel: Model<User>,
-        private readonly mailerService: MailerService,
-        private readonly configService: ConfigService
-    ) { }
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
+  ) {}
 
-    isEmailExist = async (email: string) => {
-        const user = await this.userModel.exists({ email });
-        if (user) return true;
-        return false;
+  isEmailExist = async (email: string) => {
+    const user = await this.userModel.exists({ email });
+    if (user) return true;
+    return false;
+  };
+
+  getCodeExpired = () => {
+    const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
+    const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
+    const codeExpired = dayjs()
+      .add(expireValue, expireUnit as dayjs.ManipulateType)
+      .toDate();
+
+    return codeExpired;
+  };
+
+  async create(createUserDto: CreateUserDto): Promise<UserDocument> {
+    const { username, email, password, phone, gender, avatar, bio, birthDate } =
+      createUserDto;
+    //check email
+    const isExist = await this.isEmailExist(email);
+    if (isExist === true) {
+      throw new ConflictException(`Email đã được đăng kí.`);
     }
 
-    getCodeExpired = () => {
-        const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
-        const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
-        const codeExpired = dayjs().add(expireValue, expireUnit as dayjs.ManipulateType).toDate();
+    //hash password
+    const hashPassword = await hashPasswordHelper(password);
 
-        return codeExpired
+    const user = new this.userModel({
+      username,
+      email,
+      password: hashPassword,
+      phone,
+      gender,
+      avatar,
+      bio,
+      birthDate,
+    });
+    return user.save();
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const updateData: any = { ...updateUserDto };
+
+    if (updateUserDto.password) {
+      updateData.password = await hashPasswordHelper(updateUserDto.password);
+    } else {
+      delete updateData.password;
     }
 
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate({ _id: id }, updateData, { new: true })
+      .exec();
 
-    async create(createUserDto: CreateUserDto): Promise<UserDocument> {
-
-        const { username, email, password, phone, gender, avatar, bio, birthDate } = createUserDto;
-        //check email
-        const isExist = await this.isEmailExist(email);
-        if (isExist === true) {
-            throw new ConflictException(`Email đã được đăng kí.`)
-        }
-
-        //hash password
-        const hashPassword = await hashPasswordHelper(password);
-
-        const user = new this.userModel({ username, email, password: hashPassword, phone, gender, avatar, bio, birthDate });
-        return user.save();
+    if (!updatedUser) {
+      throw new NotFoundException('Người dùng không tồn tại!');
     }
 
-    async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-        const updateData: any = { ...updateUserDto };
+    return updatedUser;
+  }
 
-        if (updateUserDto.password) {
-            updateData.password = await hashPasswordHelper(updateUserDto.password);
-        } else {
-            delete updateData.password;
-        }
+  async updateRefreshToken(id: string, refreshToken: string) {
+    const hash = await hashPasswordHelper(refreshToken);
 
-        const updatedUser = await this.userModel.findByIdAndUpdate(
-            { _id: id },
-            updateData,
-            { new: true }
-        ).exec();
+    const user = await this.userModel.findByIdAndUpdate(
+      { _id: id },
+      { tokenHash: hash },
+      { new: true },
+    );
 
-        if (!updatedUser) {
-            throw new NotFoundException('Người dùng không tồn tại!');
-        }
-
-        return updatedUser
-
+    if (!user) {
+      throw new Error('User not found');
     }
 
-    async updateRefreshToken(id: string, refreshToken: string) {
+    return user;
+  }
 
-        const hash = await hashPasswordHelper(refreshToken);
+  async findAll(): Promise<User[]> {
+    return this.userModel.find().exec();
+  }
 
-        const user = await this.userModel.findByIdAndUpdate(
-            { _id: id },
-            { tokenHash: hash },
-            { new: true },
+  async findByUsername(username: string): Promise<User[]> {
+    return this.userModel.find({ username }).exec();
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.userModel.findById({ _id: id }).exec();
+  }
+
+  async delete(id: string): Promise<User | null> {
+    const deleteUser = await this.userModel
+      .findByIdAndDelete({ _id: id })
+      .exec();
+
+    return deleteUser;
+  }
+
+  // API for Client
+  async findAllByQuery(query: SearchUserDto): Promise<User[]> {
+    const filter: any = {
+      isDeleted: false,
+    };
+
+    if (query.username) {
+      filter.username = { $regex: query.username, $options: 'i' };
+    }
+
+    if (query.email) {
+      filter.email = { $regex: query.email, $options: 'i' };
+    }
+
+    return this.userModel.find(filter).exec();
+  }
+
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ email: email }).exec();
+  }
+
+  async handleRegister(user) {
+    try {
+      const { username, email, password, bio, birthDate, phone, gender } = user;
+
+      //check email
+      const isExist = await this.isEmailExist(email);
+      if (isExist === true) {
+        throw new ConflictException(`Email đã tồn tại: ${email}`);
+      }
+
+      //hash password
+      const hashPassword = await hashPasswordHelper(password);
+
+      const codeId = uuidv4();
+
+      const codeExpired = this.getCodeExpired();
+
+      const createdUser = await this.userModel.create({
+        username,
+        email,
+        password: hashPassword,
+        bio,
+        phone,
+        gender,
+        birthDate,
+        isActive: false,
+        codeId: codeId,
+        codeExpired,
+      });
+
+      // send email
+      this.mailerService.sendMail({
+        to: createdUser.email, // list of receivers
+        subject: 'Testing Nest MailerModule ✔', // Subject line
+        text: 'welcome', // plaintext body
+        template: 'register',
+        context: {
+          name: createdUser?.username ?? createdUser.email,
+          activationCode: createdUser.codeId,
+        },
+      });
+
+      return {
+        message: 'Email đã được gửi code hãy chuyển qua trang active',
+        user: {
+          id: createdUser._id,
+          username: createdUser.username,
+          email: createdUser.email,
+          isActive: createdUser.isActive,
+          codeId: createdUser.codeId,
+          codeExpired: createdUser.codeExpired,
+        },
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
+    }
+  }
+
+  async handleActivateAccount(id: string, codeId: string) {
+    try {
+      const account = await this.userModel
+        .findOne({ _id: id, codeId: codeId })
+        .exec();
+
+      if (!account)
+        throw new NotFoundException(
+          'The activation code is invalid or has expired.!',
         );
 
-        if (!user) {
-            throw new Error('User not found');
-        }
+      if (account.isActive)
+        throw new ConflictException('Account has already been activated');
 
-        return user;
+      //check expire code
+      const isBeforeCheck = dayjs().isBefore(account.codeExpired);
 
+      if (isBeforeCheck) {
+        await this.userModel.updateOne(
+          { _id: account.id },
+          {
+            isActive: true,
+          },
+        );
+        return { isBeforeCheck };
+      } else {
+        throw new BadRequestException(
+          'The activation code is invalid or has expired.!',
+        );
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
     }
+  }
 
-    async findAll(): Promise<User[]> {
-        return this.userModel.find().exec();
+  async handleRegisterWithGmail(user) {
+    try {
+      const { username, email } = user;
+
+      const createUser = await this.userModel.create({
+        username,
+        email,
+        isActive: true,
+      });
+
+      return createUser;
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
     }
+  }
 
-    async findByUsername(username: string): Promise<User[]> {
-        return this.userModel.find({ username }).exec();
+  async sendResetPasswordEmail(user: UserDocument) {
+    try {
+      const codeId = uuidv4();
+      // const codeExpired = dayjs().add(30, "s").toDate();
+      const codeExpired = this.getCodeExpired();
+
+      // Gửi email reset password
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: 'Reset your password',
+        text: 'welcome',
+        template: 'reset-password',
+        context: {
+          name: user?.username ?? user.email,
+          resetLink: `https://yourapp.com/reset-password/${codeId}`,
+        },
+      });
+
+      // Cập nhật user trực tiếp
+      user.codeId = codeId;
+      user.codeExpired = codeExpired;
+      await user.save();
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
     }
+  }
 
-    async findById(id: string): Promise<User | null> {
-        return this.userModel.findById({ _id: id }).exec();
+  async forgetPassword(email: string) {
+    try {
+      const userExists = await this.findByEmail(email);
+
+      if (userExists) {
+        await this.sendResetPasswordEmail(userExists);
+      }
+
+      return {
+        message:
+          'If an account with that email exists, you will receive a password reset email shortly.',
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
     }
+  }
 
-    async delete(id: string): Promise<User | null> {
-        const deleteUser = await this.userModel.findByIdAndDelete({ _id: id }).exec()
+  async resendCodeId(id: string) {
+    try {
+      const user = await this.userModel.findOne({ _id: id }).exec();
 
-        return deleteUser
+      if (!user) throw new BadRequestException('what is going wrong!');
+
+      const codeId = uuidv4();
+      const codeExpired = this.getCodeExpired();
+
+      user.codeId = codeId;
+      user.codeExpired = codeExpired;
+      await user.save();
+
+      // send email
+      this.mailerService.sendMail({
+        to: user.email, // list of receivers
+        subject: 'Resend Code ✔', // Subject line
+        text: 'Resend Code', // plaintext body
+        template: 'resend',
+        context: {
+          name: user?.username ?? user.email,
+          activationCode: codeId,
+        },
+      });
+
+      return {
+        status: true,
+        message: 'Resend Code ID success!',
+      };
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
     }
-
-    // API for Client
-    async findAllByQuery(query: SearchUserDto): Promise<User[]> {
-        const filter: any = {
-            isDeleted: false
-        };
-
-        if (query.username) {
-            filter.username = { $regex: query.username, $options: 'i' };
-        }
-
-        if (query.email) {
-            filter.email = { $regex: query.email, $options: 'i' };
-        }
-
-        return this.userModel.find(filter).exec()
-    }
-
-    async findByEmail(email: string): Promise<UserDocument | null> {
-        return this.userModel.findOne({ email: email }).exec();
-    }
-
-    async handleRegister(user) {
-        try {
-            const { username, email, password, bio, birthDate, phone, gender } = user
-
-            //check email
-            const isExist = await this.isEmailExist(email);
-            if (isExist === true) {
-                throw new ConflictException(`Email đã tồn tại: ${email}`)
-            }
-
-            //hash password
-            const hashPassword = await hashPasswordHelper(password);
-
-            const codeId = uuidv4();
-
-            const codeExpired = this.getCodeExpired()
-
-            const createdUser = await this.userModel.create({
-                username,
-                email,
-                password: hashPassword,
-                bio,
-                phone,
-                gender,
-                birthDate,
-                isActive: false,
-                codeId: codeId,
-                codeExpired
-            })
-
-            // send email
-            this.mailerService
-                .sendMail({
-                    to: createdUser.email, // list of receivers
-                    subject: 'Testing Nest MailerModule ✔', // Subject line
-                    text: 'welcome', // plaintext body
-                    template: "register",
-                    context: {
-                        name: createdUser?.username ?? createdUser.email,
-                        activationCode: createdUser.codeId
-                    }
-
-                })
-
-            return {
-                message: 'Email đã được gửi code hãy chuyển qua trang active',
-                user: {
-                    id: createdUser._id,
-                    username: createdUser.username,
-                    email: createdUser.email,
-                    isActive: createdUser.isActive,
-                    codeId: createdUser.codeId,
-                    codeExpired: createdUser.codeExpired
-                },
-            };
-        } catch (err) {
-            throw new InternalServerErrorException(err.message);
-        }
-    }
-
-    async handleActivateAccount(id: string, codeId: string) {
-        try {
-            const account = await this.userModel.findOne({ _id: id, codeId: codeId }).exec();
-
-            if (!account) throw new NotFoundException('The activation code is invalid or has expired.!');
-
-            if(account.isActive) throw new ConflictException('Account has already been activated');
-
-            //check expire code
-            const isBeforeCheck = dayjs().isBefore(account.codeExpired);
-
-            if (isBeforeCheck) {
-                await this.userModel.updateOne({ _id: account.id }, {
-                    isActive: true
-                })
-                return { isBeforeCheck }
-            } else {
-                throw new BadRequestException('The activation code is invalid or has expired.!')
-            }
-
-
-        } catch (err) {
-            throw new InternalServerErrorException(err.message);
-        }
-    }
-
-
-    async handleRegisterWithGmail(user) {
-        try {
-            const { username, email } = user
-
-
-            const createUser = await this.userModel.create({
-                username,
-                email,
-                isActive: true
-            })
-
-            return createUser
-
-        } catch (err) {
-            throw new InternalServerErrorException(err.message);
-        }
-    }
-
-    async sendResetPasswordEmail(user: UserDocument) {
-        try {
-            const codeId = uuidv4();
-            // const codeExpired = dayjs().add(30, "s").toDate();
-            const codeExpired = this.getCodeExpired()
-
-            // Gửi email reset password
-            await this.mailerService.sendMail({
-                to: user.email,
-                subject: "Reset your password",
-                text: "welcome",
-                template: "reset-password",
-                context: {
-                    name: user?.username ?? user.email,
-                    resetLink: `https://yourapp.com/reset-password/${codeId}`,
-                },
-            });
-
-            // Cập nhật user trực tiếp
-            user.codeId = codeId;
-            user.codeExpired = codeExpired;
-            await user.save();
-        } catch (err) {
-            throw new InternalServerErrorException(err.message);
-        }
-    }
-
-
-    async forgetPassword(email: string) {
-        try {
-
-            const userExists = await this.findByEmail(email);
-
-            if (userExists) {
-                await this.sendResetPasswordEmail(userExists)
-            }
-
-            return {
-                message: 'If an account with that email exists, you will receive a password reset email shortly.'
-            };
-
-
-
-        } catch (err) {
-            throw new InternalServerErrorException(err.message);
-        }
-    }
-
-    async resendCodeId(id: string) {
-        try {
-
-            const user = await this.userModel.findOne({ _id: id }).exec()
-
-            if (!user) throw new BadRequestException('what is going wrong!')
-
-            const codeId = uuidv4();
-            const codeExpired = this.getCodeExpired()
-
-            user.codeId = codeId;
-            user.codeExpired = codeExpired;
-            await user.save();
-
-            // send email
-            this.mailerService
-                .sendMail({
-                    to: user.email, // list of receivers
-                    subject: 'Resend Code ✔', // Subject line
-                    text: 'Resend Code', // plaintext body
-                    template: "resend",
-                    context: {
-                        name: user?.username ?? user.email,
-                        activationCode: codeId
-                    }
-
-                })
-
-            return {
-                status: true,
-                message: 'Resend Code ID success!',
-
-            }
-
-
-        } catch (err) {
-            throw new InternalServerErrorException(err.message);
-        }
-    }
-
+  }
 }

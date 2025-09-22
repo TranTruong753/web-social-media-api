@@ -1,4 +1,4 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
@@ -7,10 +7,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 
-
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-
 
   const configService = app.get(ConfigService);
 
@@ -28,26 +26,27 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
 
-    exceptionFactory: (errors) => {
-      const formattedErrors = {};
-      errors.forEach((err) => {
-        if (!err.constraints) return;
-        formattedErrors[err.property] = Object.values(err.constraints);
-      });
+      exceptionFactory: (errors) => {
+        const formattedErrors = {};
+        errors.forEach((err) => {
+          if (!err.constraints) return;
+          formattedErrors[err.property] = Object.values(err.constraints);
+        });
 
-      return new BadRequestException({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: formattedErrors,
-      });
-    }
-  }));
-
+        return new BadRequestException({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: formattedErrors,
+        });
+      },
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Social Media API')

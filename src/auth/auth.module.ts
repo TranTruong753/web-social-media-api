@@ -12,8 +12,6 @@ import { GoogleStrategy } from './guards/google.strategy';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/user/schemas/user.schema';
 
-
-
 @Module({
   imports: [
     UserModule,
@@ -28,12 +26,17 @@ import { User, UserSchema } from 'src/user/schemas/user.schema';
       }),
       inject: [ConfigService],
     }),
-    PassportModule
+    PassportModule,
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, JwtRefreshStrategy, GoogleStrategy],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    JwtRefreshStrategy,
+    GoogleStrategy,
+  ],
   controllers: [AuthController],
   // exports: [AuthService]
   exports: [AuthService, JwtModule],
-
 })
-export class AuthModule { }
+export class AuthModule {}

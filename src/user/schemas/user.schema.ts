@@ -35,7 +35,7 @@ export class User {
   })
   gender: Gender;
 
-  @Prop({ default: "USERS" })
+  @Prop({ default: 'USERS' })
   role: string;
 
   @Prop({ default: false })
@@ -54,8 +54,7 @@ export class User {
   codeExpired: Date;
 
   @Prop()
-  tokenHash: string
-
+  tokenHash: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
