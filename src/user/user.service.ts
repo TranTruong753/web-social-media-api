@@ -8,7 +8,7 @@ import {
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUserDto } from './dto/search-user.dto';
 import { hashPasswordHelper } from 'src/common/utils';
@@ -203,6 +203,11 @@ export class UserService {
 
   async handleActivateAccount(id: string, codeId: string) {
     try {
+
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid user id');
+      }
+      
       const account = await this.userModel
         .findOne({ _id: id, codeId: codeId })
         .exec();
@@ -252,10 +257,49 @@ export class UserService {
     }
   }
 
+  async handleUpdatePwForUser(id: string, codeId: string, password: string) {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid user id');
+      }
+      const account = await this.userModel
+        .findOne({ _id: id, codeId: codeId })
+        .exec();
+
+      if (!account)
+        throw new NotFoundException(
+          'This link is invalid or has expired.!',
+        );
+
+
+      //check expire code
+      const isBeforeCheck = dayjs().isBefore(account.codeExpired);
+
+      if (isBeforeCheck) {
+
+        const hashPassword = await hashPasswordHelper(password);
+
+
+        await this.userModel.updateOne(
+          { _id: account.id },
+          {
+            password: hashPassword,
+          },
+        );
+        return { isBeforeCheck };
+      } else {
+        throw new BadRequestException(
+          'The activation code is invalid or has expired.!',
+        );
+      }
+    } catch (err) {
+      throw new InternalServerErrorException(err.message);
+    }
+  }
+
   async sendResetPasswordEmail(user: UserDocument) {
     try {
       const codeId = uuidv4();
-      // const codeExpired = dayjs().add(30, "s").toDate();
       const codeExpired = this.getCodeExpired();
 
       // Gửi email reset password
@@ -266,7 +310,8 @@ export class UserService {
         template: 'reset-password',
         context: {
           name: user?.username ?? user.email,
-          resetLink: `https://yourapp.com/reset-password/${codeId}`,
+          // resetLink: `https://yourapp.com/reset-password/${codeId}`,
+          resetLink: `${this.configService.get<string>('RESET_PW_URL')}?id=${user.id}&code=${codeId}`
         },
       });
 
@@ -288,6 +333,7 @@ export class UserService {
       }
 
       return {
+        status: true,
         message:
           'If an account with that email exists, you will receive a password reset email shortly.',
       };

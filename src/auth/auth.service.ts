@@ -164,8 +164,12 @@ export class AuthService {
     return this.userService.resendCodeId(data.id);
   }
 
-  async forgetPassword(email) {
+  async forgetPassword(email:string) {
     return this.userService.forgetPassword(email);
+  }
+
+  async updatePwForUser(id : string ,codeId : string ,password : string) {
+    return this.userService.handleUpdatePwForUser(id, codeId, password)
   }
 
   async resetRefreshToken(user: JwtPayload, res: Response) {

@@ -21,6 +21,8 @@ import {
   AuthenticatedRequest,
   CodeAuthDto,
   RegisterDto,
+  ResendCodeDto,
+  UpdatePwForUserDto,
 } from './dto/register.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ForgotPasswordDto } from './dto/forget-password.dto';
@@ -65,7 +67,7 @@ export class AuthController {
 
   @Post('resend-code')
   @Public()
-  resendCode(@Body() data: CodeAuthDto) {
+  resendCode(@Body() data: ResendCodeDto) {
     return this.authService.resendCodeId(data);
   }
 
@@ -112,6 +114,14 @@ export class AuthController {
   forgetPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.forgetPassword(body.email);
   }
+
+  @Post('change-password')
+  @Public()
+  updatePwForUser(@Body() body: UpdatePwForUserDto) {
+    return this.authService.updatePwForUser(body.id, body.codeId, body.password);
+  }
+
+
 
   @Post('logout')
   @Public()

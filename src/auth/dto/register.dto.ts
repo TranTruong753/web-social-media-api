@@ -80,6 +80,24 @@ export class CodeAuthDto {
   readonly codeId: string;
 }
 
+export class UpdatePwForUserDto {
+  @ApiProperty({ required: true, description: 'Id', example: 'Id' })
+  @IsNotEmpty({ message: 'id không được để trống' })
+  readonly id: string;
+
+  @ApiProperty({ required: true, description: 'Code Id', example: 'uuid' })
+  @IsNotEmpty({ message: 'Code Id không được để trống!' })
+  readonly codeId: string;
+
+  @ApiProperty({
+    required: true,
+    description: 'Mật khẩu người dùng',
+    example: '12345678',
+  })
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống!' })
+  readonly password: string;
+}
+
 export interface JwtPayload {
   id: string;
   username: string;
