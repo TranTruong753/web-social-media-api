@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -31,9 +32,15 @@ export class UserService {
     return false;
   };
 
+  isPhoneExist = async (phone: string) => {
+    const user = await this.userModel.exists({ phone });
+    if (user) return true;
+    return false;
+  };
+
   getCodeExpired = () => {
-    const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 30);
-    const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 's');
+    const expireValue = this.configService.get<number>('CODE_EXPIRE_VALUE', 5);
+    const expireUnit = this.configService.get<string>('CODE_EXPIRE_UNIT', 'm');
     const codeExpired = dayjs()
       .add(expireValue, expireUnit as dayjs.ManipulateType)
       .toDate();
@@ -149,8 +156,19 @@ export class UserService {
 
       //check email
       const isExist = await this.isEmailExist(email);
-      if (isExist === true) {
-        throw new ConflictException(`Email đã tồn tại: ${email}`);
+      if (isExist) {
+        throw new ConflictException({
+          message: `Email đã tồn tại: ${email}`,
+          field: 'email'
+        });
+      }
+
+      const isPhoneExist = await this.isPhoneExist(phone)
+      if (isPhoneExist) {
+        throw new ConflictException({
+          message: `Phone đã tồn tại: ${phone}`,
+          field: 'phone'
+        });
       }
 
       //hash password
@@ -197,6 +215,9 @@ export class UserService {
         },
       };
     } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
       throw new InternalServerErrorException(err.message);
     }
   }
@@ -207,7 +228,7 @@ export class UserService {
       if (!Types.ObjectId.isValid(id)) {
         throw new BadRequestException('Invalid user id');
       }
-      
+
       const account = await this.userModel
         .findOne({ _id: id, codeId: codeId })
         .exec();
@@ -233,10 +254,14 @@ export class UserService {
         return { isBeforeCheck };
       } else {
         throw new BadRequestException(
-          'The activation code is invalid or has expired.!',
+          'The activation code is invalid or has expired!',
         );
       }
     } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
       throw new InternalServerErrorException(err.message);
     }
   }
@@ -263,7 +288,7 @@ export class UserService {
         throw new BadRequestException('Invalid user id');
       }
       const account = await this.userModel
-        .findOne({ _id: id, codeId: codeId })
+        .findOne({ codeId: codeId })
         .exec();
 
       if (!account)
@@ -289,11 +314,17 @@ export class UserService {
         return { isBeforeCheck };
       } else {
         throw new BadRequestException(
-          'The activation code is invalid or has expired.!',
+          'This link is invalid or has expired.!',
         );
       }
     } catch (err) {
-      throw new InternalServerErrorException(err.message);
+      // Nếu err đã là HttpException thì ném lại y nguyên
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      // còn lại thì wrap thành 500 hoặc 400 tuỳ logic
+      throw new InternalServerErrorException(err.message || 'Something went wrong');
+
     }
   }
 
@@ -346,7 +377,7 @@ export class UserService {
     try {
       const user = await this.userModel.findOne({ _id: id }).exec();
 
-      if (!user) throw new BadRequestException('what is going wrong!');
+      if (!user) throw new NotFoundException('what is going wrong!');
 
       const codeId = uuidv4();
       const codeExpired = this.getCodeExpired();
@@ -372,6 +403,10 @@ export class UserService {
         message: 'Resend Code ID success!',
       };
     } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
       throw new InternalServerErrorException(err.message);
     }
   }

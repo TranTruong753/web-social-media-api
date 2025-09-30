@@ -1,7 +1,7 @@
 import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
 import {
-  BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,11 +16,14 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   async validate(email: string, password: string): Promise<any> {
     const user = await this.authService.validateUser(email, password);
     if (!user) {
-      throw new UnauthorizedException('Username/Password không hợp lệ.');
+      throw new UnauthorizedException('Invalid Username/Password!');
     }
 
     if (user.isActive === false) {
-      throw new BadRequestException('Account chưa được kích hoạt');
+      throw new ForbiddenException({
+        message: 'Account not activated!',
+        userId: user.id
+      });
     }
 
     return user;
