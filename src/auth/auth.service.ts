@@ -18,7 +18,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async generateJwt(payload) {
     return this.jwtService.sign(payload);
@@ -164,12 +164,12 @@ export class AuthService {
     return this.userService.resendCodeId(data.id);
   }
 
-  async forgetPassword(email:string) {
+  async forgetPassword(email: string) {
     return this.userService.forgetPassword(email);
   }
 
-  async updatePwForUser(id : string ,codeId : string ,password : string) {
-    return this.userService.handleUpdatePwForUser(id, codeId, password)
+  async updatePwForUser(id: string, codeId: string, password: string) {
+    return this.userService.handleUpdatePwForUser(id, codeId, password);
   }
 
   async resetRefreshToken(user: JwtPayload, res: Response) {

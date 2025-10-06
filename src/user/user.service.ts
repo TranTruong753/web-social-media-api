@@ -24,7 +24,7 @@ export class UserService {
     @InjectModel(User.name) private userModel: Model<User>,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   isEmailExist = async (email: string) => {
     const user = await this.userModel.exists({ email });
@@ -159,15 +159,15 @@ export class UserService {
       if (isExist) {
         throw new ConflictException({
           message: `Email đã tồn tại: ${email}`,
-          field: 'email'
+          field: 'email',
         });
       }
 
-      const isPhoneExist = await this.isPhoneExist(phone)
+      const isPhoneExist = await this.isPhoneExist(phone);
       if (isPhoneExist) {
         throw new ConflictException({
           message: `Phone đã tồn tại: ${phone}`,
-          field: 'phone'
+          field: 'phone',
         });
       }
 
@@ -224,7 +224,6 @@ export class UserService {
 
   async handleActivateAccount(id: string, codeId: string) {
     try {
-
       if (!Types.ObjectId.isValid(id)) {
         throw new BadRequestException('Invalid user id');
       }
@@ -287,23 +286,16 @@ export class UserService {
       if (!Types.ObjectId.isValid(id)) {
         throw new BadRequestException('Invalid user id');
       }
-      const account = await this.userModel
-        .findOne({ codeId: codeId })
-        .exec();
+      const account = await this.userModel.findOne({ codeId: codeId }).exec();
 
       if (!account)
-        throw new NotFoundException(
-          'This link is invalid or has expired.!',
-        );
-
+        throw new NotFoundException('This link is invalid or has expired.!');
 
       //check expire code
       const isBeforeCheck = dayjs().isBefore(account.codeExpired);
 
       if (isBeforeCheck) {
-
         const hashPassword = await hashPasswordHelper(password);
-
 
         await this.userModel.updateOne(
           { _id: account.id },
@@ -313,9 +305,7 @@ export class UserService {
         );
         return { isBeforeCheck };
       } else {
-        throw new BadRequestException(
-          'This link is invalid or has expired.!',
-        );
+        throw new BadRequestException('This link is invalid or has expired.!');
       }
     } catch (err) {
       // Nếu err đã là HttpException thì ném lại y nguyên
@@ -323,8 +313,9 @@ export class UserService {
         throw err;
       }
       // còn lại thì wrap thành 500 hoặc 400 tuỳ logic
-      throw new InternalServerErrorException(err.message || 'Something went wrong');
-
+      throw new InternalServerErrorException(
+        err.message || 'Something went wrong',
+      );
     }
   }
 
@@ -342,7 +333,7 @@ export class UserService {
         context: {
           name: user?.username ?? user.email,
           // resetLink: `https://yourapp.com/reset-password/${codeId}`,
-          resetLink: `${this.configService.get<string>('RESET_PW_URL')}?id=${user.id}&code=${codeId}`
+          resetLink: `${this.configService.get<string>('RESET_PW_URL')}?id=${user.id}&code=${codeId}`,
         },
       });
 

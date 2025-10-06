@@ -22,7 +22,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     if (user.isActive === false) {
       throw new ForbiddenException({
         message: 'Account not activated!',
-        userId: user.id
+        userId: user.id,
       });
     }
 

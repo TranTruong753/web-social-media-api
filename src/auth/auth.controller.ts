@@ -118,10 +118,12 @@ export class AuthController {
   @Post('change-password')
   @Public()
   updatePwForUser(@Body() body: UpdatePwForUserDto) {
-    return this.authService.updatePwForUser(body.id, body.codeId, body.password);
+    return this.authService.updatePwForUser(
+      body.id,
+      body.codeId,
+      body.password,
+    );
   }
-
-
 
   @Post('logout')
   @Public()

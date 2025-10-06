@@ -6,5 +6,5 @@ export enum Gender {
 
 export enum TypeFile {
   Video = 'video',
-  Img = 'img'
+  Img = 'img',
 }

@@ -10,10 +10,10 @@ import { FileModule } from '@/file/file.module';
   imports: [
     MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }]),
     UserModule,
-    FileModule
+    FileModule,
   ],
   controllers: [PostController],
   providers: [PostService],
   exports: [PostService],
 })
-export class PostModule { }
+export class PostModule {}

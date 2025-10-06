@@ -27,7 +27,7 @@ import { Gender } from 'src/common/enums';
 @ApiCookieAuth()
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Post('create-user')
   @UseInterceptors(
