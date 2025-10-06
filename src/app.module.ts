@@ -10,14 +10,18 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { FileModule } from './file/file.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true, // cho phép sử dụng toàn cục
     }),
     UserModule,
     PostModule,
+    FileModule,
     AuthModule,
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -64,4 +68,4 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

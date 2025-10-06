@@ -24,14 +24,12 @@ import { Public } from 'src/auth/decorators/public.decorator';
 import { Gender } from 'src/common/enums';
 
 @ApiTags('User')
-// @ApiBearerAuth()
 @ApiCookieAuth()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @Post('create-user')
-  @Public()
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
